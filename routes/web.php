@@ -82,3 +82,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/units', [UnitController::class, 'store'])->name('units.store');
     Route::delete('/units/{unit}', [UnitController::class, 'destroy'])->name('units.destroy');
 });
+
+Route::group(['prefix' => 'admin'], function () {
+    Voyager::routes();
+});

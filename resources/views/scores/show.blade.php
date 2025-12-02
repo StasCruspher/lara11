@@ -73,6 +73,9 @@
 </p>
             </div>
             <div class="table-responsive">
+                @if($archived)
+                    <div class="alert alert-warning">⚠️ Цей залік тільки для перегляду</div>
+                @endif
                 <table class="table-sheet table table-bordered">
                     <thead>
                         <tr>
@@ -157,8 +160,10 @@
                                 </td>
                             @else
                                 <td 
-                                @if($genderType[$exercises[$i]->id] === $r->participant->gender || $genderType[$exercises[$i]->id] === 'оба') 
-                                    contenteditable="true"
+                                @if($genderType[$exercises[$i]->id] === $r->participant->gender || $genderType[$exercises[$i]->id] === 'оба')
+                                    @if(!$archived)
+                                        contenteditable="true"
+                                    @endif
                                 @else
                                     class="forbidden-gender"
                                 @endif
@@ -168,7 +173,12 @@
                                 class="editable">
                                 {{ $r->exercises[$i]->result}}
                                 </td>
-                                <td class="point-display"
+                                <td
+                                @if($genderType[$exercises[$i]->id] === $r->participant->gender || $genderType[$exercises[$i]->id] === 'оба')
+                                    class="point-display"
+                                @else
+                                    class="forbidden-gender"
+                                @endif
                                 data-participant="{{ $r->participant->id }}"
                                 data-exercise="{{ $r->exercises[$i]->exercise_id }}">
                                 {{ $r->exercises[$i]->point }}

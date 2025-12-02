@@ -42,11 +42,11 @@
     <!-- Діапазон дат -->
     <div class="col-md-3">
         <label class="form-label">Дата від</label>
-        <input type="month" name="date_from" class="form-control" value="{{ request('date_from') }}">
+        <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label">Дата до</label>
-        <input type="month" name="date_to" class="form-control" value="{{ request('date_to') }}">
+        <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
     </div>
 
     <!-- Кількість вправ -->

@@ -8,6 +8,9 @@ use App\Models\MilRank;
 use App\Models\Category;
 use App\Models\AgeGroup;
 use App\Models\Unit;
+use App\Models\Score;
+use App\Models\Result;
+use App\Models\ResultExercise;
 use Illuminate\Validation\Rule;
 
 class ParticipantController extends Controller
@@ -126,7 +129,24 @@ class ParticipantController extends Controller
                 'unit_id.exists' => 'Вказаний підрозділ не існує.'
             ]);
 
-        Participant::create($request->all());
+        $participant = Participant::create($request->all());
+        
+        $scores = Score::with('scoreExercises')->where('unit_id', $participant->unit_id)->get();
+
+        foreach ($scores as $score) {
+
+            $result = Result::create([
+                'score_id' => $score->id,
+                'participant_id' => $participant->id,
+            ]);
+
+            foreach ($score->scoreExercises as $exercise) {
+                ResultExercise::create([
+                    'result_id' => $result->id,
+                    'exercise_id' => $exercise->exercise_id,
+                ]);
+            }
+        }
 
         return redirect()->route('participants.index')->with('success', 'Учасника додано!');
     }

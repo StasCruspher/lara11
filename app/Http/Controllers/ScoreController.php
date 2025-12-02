@@ -39,11 +39,11 @@ class ScoreController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $query->whereDate('date', '>=', $request->date_from . '-01');
+            $query->whereDate('date', '>=', $request->date_from);
         }
+
         if ($request->filled('date_to')) {
-            $dateTo = date('Y-m-t', strtotime($request->date_to . '-01'));
-            $query->whereDate('date', '<=', $dateTo);
+            $query->whereDate('date', '<=', $request->date_to);
         }
 
         if ($request->filled('exercise_count')) {
@@ -161,8 +161,38 @@ public function show($id)
         'ageGroup' => fn($q) => $q->withTrashed(),
         'category' => fn($q) => $q->withTrashed(),
     ])->get();
+    
+    $archived = false;
 
-    return view('scores.show', compact('participants', 'score', 'exercises', 'results'));
+    if ($score->trashed() || ($score->unit && $score->unit->trashed())) {
+        $archived = true;
+    }
+
+    if ($exercises->contains(fn($e) => $e->trashed())) {
+        $archived = true;
+    }
+
+    foreach ($results as $result) {
+        $p = $result->participant;
+        if (!$p) continue;
+
+        if ($p->trashed()
+            || ($p->milRank && $p->milRank->trashed())
+            || ($p->ageGroup && $p->ageGroup->trashed())
+            || ($p->category && $p->category->trashed())) {
+            $archived = true;
+            break;
+        }
+
+        foreach ($result->exercises as $re) {
+            if ($re->exercise && $re->exercise->trashed()) {
+                $archived = true;
+                break 2;
+            }
+        }
+    }
+
+    return view('scores.show', compact('participants', 'score', 'exercises', 'results', 'archived'));
 }
 
 

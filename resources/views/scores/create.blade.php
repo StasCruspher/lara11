@@ -41,27 +41,21 @@
 
     <form method="POST" action="{{ route('scores.store') }}">
         @csrf
-
-<div class="mb-3">
-    <label for="unit_name" class="form-label">Підрозділ</label>
-    <input list="units_list" id="unit_name" name="unit_name"
-           class="form-control @error('unit_name') is-invalid @enderror"
-           placeholder="Почніть вводити підрозділ..." required
-           value="{{ old('unit_name') }}">
-    <datalist id="units_list">
-        @foreach($units as $unit)
-            <option value="{{ $unit->unit_name }}">
+    <input type="hidden" name="unit_id" value="{{ $unitId }}">
+    <div id="participants_list">
+        @foreach($participants as $p)
+            <div class="participant-item" data-unit="{{ $p->unit_id }}">
+                <input type="checkbox" name="participants[]" value="{{ $p->id }}" id="p{{ $p->id }}">
+                <label for="p{{ $p->id }}"><b>{{ $p->fullname }} @if( $p->badge_number )</b> №{{ $p->badge_number }}  @endif</label>
+            </div>
         @endforeach
-    </datalist>
-    @error('unit_name')
-        <div class="text-danger small mt-1">{{ $message }}</div>
-    @enderror
-</div>
+    </div>
+
 
         {{-- Дата --}}
 <div class="mb-3">
     <label for="date" class="form-label">Дата заліку</label>
-    <input type="text" name="date" id="date"
+    <input type="date" name="date" id="date"
            class="form-control @error('date') is-invalid @enderror"
            placeholder="дд.мм.рррр" value="{{ old('date') }}" required>
     @error('date')
@@ -81,6 +75,38 @@ $(document).ready(function(){
         todayHighlight: true
     });
 });
+<script>
+$(document).ready(function(){
+    $('#unit_filter').on('change', function(){
+        var unit_id = $(this).val();
+        $('.participant-item').each(function(){
+            if(unit_id === "" || $(this).data('unit') == unit_id){
+                $(this).show();
+            } else {
+                $(this).hide();
+                $(this).find('input').prop('checked', false);
+            }
+        });
+    });
+});
+
+$(document).ready(function(){
+    $('#unit_filter').on('change', function(){
+        var unit_id = $(this).val();
+
+        $('.participant-item').each(function(){
+            var participantUnit = $(this).data('unit');
+
+            if(unit_id === "" || participantUnit == unit_id){
+                $(this).show(); // показати учня
+            } else {
+                $(this).hide(); // сховати учня
+                $(this).find('input[type="checkbox"]').prop('checked', false); // прибрати вибір
+            }
+        });
+    });
+});
+
 </script>
 
 

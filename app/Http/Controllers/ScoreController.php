@@ -75,67 +75,105 @@ class ScoreController extends Controller
         return view('scores.index', compact('scores', 'exerciseCounts'));
     }
 
-
-    public function create()
+    public function selectUnit()
     {
         $units = Unit::all();
+        return view('scores.select-unit', compact('units'));
+    }
+
+
+    public function create(Request $request)
+    {
+        $unitId = $request->query('unit_id');
+
+        $units = Unit::all();
         $exercises = Exercise::all();
+        
+        $participants = Participant::where('unit_id', $unitId)->get();
 
-        return view('scores.create', compact('units', 'exercises'));
+        return view('scores.create', compact('units', 'exercises', 'participants', 'unitId'));
     }
 
-public function store(Request $request)
-{
-    $request->validate([
-        'unit_name' => 'required|string|exists:unit,unit_name',
-        'exercises' => 'required|array|min:3|max:5',
-        'date' => 'required|date',
-    ], [
-        'unit_name.required' => 'Вкажіть підрозділ.',
-        'unit_name.exists' => 'Вказаний підрозділ не існує.',
-        'exercises.required' => 'Вкажіть вправи.',
-        'exercises.min' => 'Мінімум 3 вправи.',
-        'exercises.max' => 'Максимум 5 вправ.',
-        'date.required' => 'Вкажіть дату.',
-        'date.date' => 'Невірний формат дати.',
-    ]);
 
-    // Знаходимо підрозділ по назві
-    $unit = Unit::where('unit_name', $request->unit_name)->firstOrFail();
-
-    $score = Score::create([
-        'unit_id' => $unit->id,
-        'date' => \Carbon\Carbon::createFromFormat('d.m.Y', $request->date)->format('Y-m-d'),
-        'exercise_count' => count($request->exercises),
-    ]);
-
-    // Додаємо вибрані вправи
-    foreach ($request->exercises as $exerciseId) {
-        ScoreExercise::create([
-            'score_id' => $score->id,
-            'exercise_id' => $exerciseId,
-        ]);
-    }
-
-    // Створюємо результати для всіх учасників підрозділу
-    $participants = Participant::where('unit_id', $unit->id)->get();
-
-    foreach ($participants as $participant) {
-        $result = Result::create([
-            'score_id' => $score->id,
-            'participant_id' => $participant->id,
+    public function store(Request $request)
+    {
+        $request->validate([
+            'unit_id' => 'required|exists:unit,id',
+            'participants' => 'required|array|min:1',
+            'participants.*' => 'exists:participant,id',
+            'exercises' => 'required|array|min:3|max:5',
+            'exercises.*' => 'exists:exercise,id'
+        ], [
+            'unit_id.required' => 'Підрозділ не вибрано.',
+            'participants.required' => 'Виберіть учнів.',
+            'participants.*.exists' => 'Один із вибраних учнів не існує.',
+            'exercises.required' => 'Виберіть вправи.',
+            'exercises.min' => 'Мінімум 3 вправи.',
+            'exercises.max' => 'Максимум 5 вправ.'
         ]);
 
+        // 1️⃣ Створюємо сам залік
+        $score = Score::create([
+            'unit_id' => $request->unit_id,
+            'date' => $request->date,
+            'exercise_count' => count($request->exercises),
+        ]);
+
+        // 2️⃣ Додаємо вправи до заліку
         foreach ($request->exercises as $exerciseId) {
-            ResultExercise::create([
-                'result_id' => $result->id,
+            ScoreExercise::create([
+                'score_id' => $score->id,
                 'exercise_id' => $exerciseId,
             ]);
         }
+
+        // 3️⃣ Створюємо результати ТІЛЬКИ для вибраних учнів
+        $participants = Participant::whereIn('id', $request->participants)->get();
+
+        foreach ($participants as $participant) {
+            $result = Result::create([
+                'score_id' => $score->id,
+                'participant_id' => $participant->id,
+            ]);
+
+            // Додаємо вправи для кожного результату
+            foreach ($request->exercises as $exerciseId) {
+                ResultExercise::create([
+                    'result_id' => $result->id,
+                    'exercise_id' => $exerciseId,
+                ]);
+            }
+        }
+
+        return redirect()->route('scores.index')->with('success', 'Залік створено успішно!');
     }
 
-    return redirect()->route('scores.index')->with('success', 'Залік створено успішно!');
-}
+    public function storeParticipant(Request $request, Score $score)
+    {
+        $request->validate([
+            'participant_id' => 'required|exists:participant,id',
+        ], [
+            'participant_id.required' => 'Виберіть учня.',
+        ]);
+
+        if(Result::where('score_id', $score->id)->where('participant_id', $request->participant_id)->exists()){
+            return redirect()->back()->with('error', 'Учень вже доданий до заліку!');
+        }
+
+        $result = Result::create([
+            'score_id' => $score->id,
+            'participant_id' => $request->participant_id,
+        ]);
+
+        foreach ($score->exercises as $exercise) {
+            ResultExercise::create([
+                'result_id' => $result->id,
+                'exercise_id' => $exercise->id,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Учня додано до заліку!');
+    }
 
 public function show($id)
 {
@@ -161,6 +199,8 @@ public function show($id)
         'ageGroup' => fn($q) => $q->withTrashed(),
         'category' => fn($q) => $q->withTrashed(),
     ])->get();
+    
+    $allParticipants = Participant::all();
     
     $archived = false;
 
@@ -192,7 +232,7 @@ public function show($id)
         }
     }
 
-    return view('scores.show', compact('participants', 'score', 'exercises', 'results', 'archived'));
+    return view('scores.show', compact('participants', 'score', 'exercises', 'results', 'archived', 'allParticipants'));
 }
 
 

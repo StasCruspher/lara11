@@ -73,6 +73,36 @@
 </p>
             </div>
             <div class="table-responsive">
+                @if(!$archived)
+                <div class="mb-3 p-2 border rounded bg-light">
+                    <h5>➕ Додати учня до заліку</h5>
+                    @php
+                        $existing = $results->pluck('participant_id');
+                        $availableParticipants = $allParticipants->whereNotIn('id', $existing);
+                    @endphp
+
+                    @if($availableParticipants->isEmpty())
+                        <div class="alert alert-info">Усі учні цього підрозділу вже додані до заліку.</div>
+                    @else
+                    <form method="POST" action="{{ route('scores.store-participant', $score->id) }}" class="row g-2 align-items-end">
+                        @csrf
+                        <div class="col-md-6">
+                            <label class="form-label">Виберіть учня</label>
+                            <select name="participant_id" class="form-select" required>
+                                <option value="">— Оберіть —</option>
+                                @foreach($availableParticipants as $p)
+                                    <option value="{{ $p->id }}">{{ $p->milRank->name }} {{ $p->fullname }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success">Додати</button>
+                        </div>
+                    </form>
+                    @endif
+                </div>
+                @endif
+
                 @if($archived)
                     <div class="alert alert-warning">⚠️ Цей залік тільки для перегляду</div>
                 @endif

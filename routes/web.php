@@ -73,6 +73,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/scores', [ScoreController::class, 'index'])->name('scores.index');
     Route::get('/scores/create', [ScoreController::class, 'create'])->name('scores.create');
     Route::post('/scores', [ScoreController::class, 'store'])->name('scores.store');
+    Route::get('/scores/select-unit', [ScoreController::class, 'selectUnit'])->name('scores.select-unit');
+    Route::post('/scores/{score}/add-participant', [ScoreController::class, 'storeParticipant'])
+                                      ->name('scores.store-participant');
     Route::get('/scores/{id}', [ScoreController::class, 'show'])->name('scores.show');
     Route::post('/score/update-result', [\App\Http\Controllers\ScoreController::class, 'updateResult'])
                                      ->name('score.update-result');

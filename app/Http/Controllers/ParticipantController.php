@@ -129,24 +129,7 @@ class ParticipantController extends Controller
                 'unit_id.exists' => 'Вказаний підрозділ не існує.'
             ]);
 
-        $participant = Participant::create($request->all());
-        
-        $scores = Score::with('scoreExercises')->where('unit_id', $participant->unit_id)->get();
-
-        foreach ($scores as $score) {
-
-            $result = Result::create([
-                'score_id' => $score->id,
-                'participant_id' => $participant->id,
-            ]);
-
-            foreach ($score->scoreExercises as $exercise) {
-                ResultExercise::create([
-                    'result_id' => $result->id,
-                    'exercise_id' => $exercise->exercise_id,
-                ]);
-            }
-        }
+        Participant::create($request->all());
 
         return redirect()->route('participants.index')->with('success', 'Учасника додано!');
     }

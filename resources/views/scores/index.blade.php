@@ -103,7 +103,7 @@
         </div>
     </form>
 
-    <a href="{{ route('scores.create') }}" class="btn btn-primary mb-3">➕ Створити залік</a>
+    <a href="{{ route('scores.select-unit') }}" class="btn btn-primary mb-3">➕ Створити залік</a>
 
     <table class="table table-bordered table-striped">
         <thead class="table-primary">

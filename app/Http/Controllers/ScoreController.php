@@ -200,7 +200,11 @@ public function show($id)
         'category' => fn($q) => $q->withTrashed(),
     ])->get();
     
-    $allParticipants = Participant::all();
+    $allParticipants = Participant::with([
+        'milRank' => function ($q) {
+            $q->withTrashed();
+        }
+    ])->get();
     
     $archived = false;
 

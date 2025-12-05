@@ -47,4 +47,25 @@ class CategoryController extends Controller
         $category->delete();
         return redirect()->route('categories.index')->with('success', 'Категорію видалено!');
     }
+
+    public function trashed()
+    {
+        $categories = Category::onlyTrashed()->get();
+        return view('categories_trashed', compact('categories'));
+    }
+
+    public function restore($id)
+    {
+        $category = Category::onlyTrashed()->findOrFail($id);
+
+        $exists = Category::where('category_number', $category->category_number)->exists();
+        if ($exists) {
+            return redirect()->route('categories.trashed')
+                             ->with('error', 'Неможливо відновити: вже існує активна категорія з таким номером.');
+        }
+
+        $category->restore();
+        return redirect()->route('categories.index')
+                         ->with('success', 'Категорію успішно відновлено.');
+    }
 }

@@ -54,4 +54,44 @@ class UnitController extends Controller
         $unit->delete();
         return redirect()->route('units.index')->with('success', 'Підрозділ видалено!');
     }
+
+    public function trashed()
+    {
+        $units = Unit::onlyTrashed()->get();
+
+        return view('unit_trashed', compact('units'));
+    }
+
+    public function restore($id)
+    {
+        $unit = Unit::onlyTrashed()->findOrFail($id);
+
+        $exists = Unit::where('unit_name', $unit->unit_name)->exists();
+        if ($exists) {
+            return redirect()->route('units.trashed')
+                             ->with('error', 'Неможливо відновити: вже існує активний підрозділ з такою назвою.');
+        }
+
+        $unit->restore();
+
+        return redirect()->route('units.index')->with('success', 'Підрозділ успішно відновлено.');
+    }
+
+    public function edit(Unit $unit)
+    {
+        return view('unit_edit', compact('unit'));
+    }
+
+    public function update(Request $request, Unit $unit)
+    {
+        $request->validate([
+            'unit_name' => 'required|string|max:250|unique:unit,unit_name,' . $unit->id,
+        ]);
+
+        $unit->update([
+            'unit_name' => $request->unit_name,
+        ]);
+
+        return redirect()->route('units.index')->with('success', 'Підрозділ успішно перейменовано.');
+    }
 }

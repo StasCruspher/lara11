@@ -9,8 +9,7 @@
 <div class="mb-3" style="padding: 10px;">
     <button onclick="location.href='/age-groups'" class="btn btn-outline-secondary btn-sm">Вікові групи</button>
     <button onclick="location.href='/categories'" class="btn btn-outline-secondary btn-sm">Категорії</button>
-<button onclick="location.href='/phys-fitness-requirements'" class="btn btn-outline-secondary btn-sm">Вимоги</button>
-
+    <button onclick="location.href='/phys-fitness-requirements'" class="btn btn-outline-secondary btn-sm">Вимоги</button>
     <button onclick="location.href='/mil-ranks'" class="btn btn-outline-secondary btn-sm">Військові звання</button>
     <button onclick="location.href='/participants'" class="btn btn-outline-secondary btn-sm">Учні</button>
     <button onclick="location.href='/units'" class="btn btn-outline-secondary btn-sm">Підрозділи</button>
@@ -37,7 +36,7 @@
     {{-- Форма додавання нормативу --}}
     <form method="POST" action="{{ route('requirements.store', $exercise) }}" style="max-width: 600px;">
         @csrf
-
+        <input type="hidden" name="exercise_id" value="{{ $exercise->id }}">
         <div class="mb-3">
             <label for="result" class="form-label">Результат:</label>
             <input type="number" step="0.01" name="result" id="result" class="form-control" value="{{ old('result') }}" required min=0.01 max=99999>

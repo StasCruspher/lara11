@@ -56,4 +56,43 @@ class MilRankController extends Controller
         $mil_rank->delete();
         return redirect()->route('mil-ranks.index')->with('success', 'Звання видалено!');
     }
+
+    public function edit(MilRank $mil_rank)
+    {
+        return view('mil-ranks.edit', compact('mil_rank'));
+    }
+
+    public function update(Request $request, MilRank $mil_rank)
+    {
+        $request->validate([
+            'name' => 'required|string|max:250',
+        ]);
+
+        $mil_rank->update([
+            'name' => $request->name,
+        ]);
+
+        return redirect()->route('mil-ranks.index')->with('success', 'Звання оновлено!');
+    }
+
+    public function trashed()
+    {
+        $ranks = MilRank::onlyTrashed()->get();
+        return view('mil_rank_trashed', compact('ranks'));
+    }
+
+    public function restore($id)
+    {
+        $rank = MilRank::onlyTrashed()->findOrFail($id);
+
+        $exists = MilRank::where('name', $rank->name)->exists();
+        if ($exists) {
+            return redirect()->route('mil-ranks.trashed')
+                             ->with('error', 'Неможливо відновити: вже існує активне звання з такою ж назвою.');
+        }
+
+        $rank->restore();
+
+        return redirect()->route('mil-ranks.index')->with('success', 'Звання успішно відновлено.');
+    }
 }

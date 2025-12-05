@@ -57,11 +57,14 @@
         </button>
     </form>
 
+    <a href="{{ route('mil-ranks.trashed') }}" class="btn btn-outline-danger mb-3">🗑️ Видалені</a>
+
     {{-- Таблиця звань --}}
     <table class="table table-bordered table-striped mt-4">
         <thead class="table-primary">
             <tr>
                 <th>Назва звання</th>
+                <th style="width: 120px;"></th>
                 <th style="width: 120px;"></th>
             </tr>
         </thead>
@@ -69,6 +72,9 @@
             @forelse ($ranks as $rank)
                 <tr>
                     <td>{{ $rank->name }}</td>
+                    <td>
+                        <a href="{{ route('mil-ranks.edit', $rank) }}" class="btn btn-warning btn-sm">✏️ Редагувати</a>
+                    </td>
                     <td>
                         <form action="{{ route('mil-ranks.destroy', $rank) }}" method="POST" onsubmit="return confirm('Видалити це звання?');">
                             @csrf

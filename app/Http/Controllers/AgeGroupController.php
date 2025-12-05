@@ -59,4 +59,28 @@ class AgeGroupController extends Controller
         $ageGroup->delete();
         return redirect()->route('age_groups.index')->with('success', 'Видалено!');
     }
+
+    public function trashed()
+    {
+        $ageGroups = AgeGroup::onlyTrashed()->get();
+        return view('age_groups_trashed', compact('ageGroups'));
+    }
+
+    public function restore($id)
+    {
+        $ageGroup = AgeGroup::onlyTrashed()->findOrFail($id);
+
+        $exists = AgeGroup::where('age_group_number', $ageGroup->age_group_number)
+                          ->whereNull('deleted_at')
+                          ->exists();
+
+        if ($exists) {
+            return redirect()->route('age_groups.trashed')
+                             ->with('error', 'Неможливо відновити: вже існує активна вікова група з таким номером.');
+        }
+
+        $ageGroup->restore();
+
+        return redirect()->route('age_groups.index')->with('success', 'Групу успішно відновлено.');
+    }
 }

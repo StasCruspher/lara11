@@ -144,4 +144,20 @@ class ParticipantController extends Controller
     {
         return redirect()->route('scores.index', ['participant_id' => $participant->id]);
     }
+    
+    public function trashed()
+    {
+        $participants = Participant::onlyTrashed()->with(['milRank' => fn($q) => $q->withTrashed(), 'category' => fn($q) => $q->withTrashed(), 'ageGroup' => fn($q) => $q->withTrashed(), 'unit'])->get();
+
+        return view('participant.trashed', compact('participants'));
+    }
+
+    public function restore($id)
+    {
+        $participant = Participant::onlyTrashed()->findOrFail($id);
+
+        $participant->restore();
+
+        return redirect()->route('participants.index')->with('success', 'Учня успішно відновлено.');
+    }
 }

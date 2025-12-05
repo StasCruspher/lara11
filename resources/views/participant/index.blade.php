@@ -85,6 +85,8 @@
         </div>
     </form>
 
+    <a href="{{ route('participants.trashed') }}" class="btn btn-outline-danger mb-3">🗑️ Видалені</a>
+
     <table class="table table-bordered table-striped">
         <thead class="table-primary">
             <tr>

@@ -84,6 +84,8 @@
     </button>
 </form>
 
+<a href="{{ route('age_groups.trashed') }}" class="btn btn-outline-danger mb-3">🗑️ Видалені</a>
+
 <table class="table table-bordered">
     <thead>
         <tr>

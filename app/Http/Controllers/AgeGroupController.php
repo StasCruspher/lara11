@@ -75,7 +75,7 @@ class AgeGroupController extends Controller
                           ->exists();
 
         if ($exists) {
-            return redirect()->route('age_groups.trashed')
+            return redirect()->route('age_groups.index')
                              ->with('error', 'Неможливо відновити: вже існує активна вікова група з таким номером.');
         }
 

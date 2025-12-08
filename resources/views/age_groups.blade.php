@@ -31,6 +31,10 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
+    @error('age_group_number')
+        <div class="alert alert-danger">{{ $message }}</div>
+    @enderror
+
 <form method="GET" action="{{ route('age_groups.index') }}" class="mb-3">
         <label>Фільтр за статтю:</label><br>
         <div class="form-check form-check-inline">

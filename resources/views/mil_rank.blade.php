@@ -57,7 +57,9 @@
         </button>
     </form>
 
-    <a href="{{ route('mil-ranks.trashed') }}" class="btn btn-outline-danger mb-3">🗑️ Видалені</a>
+    <div class="mt-3">
+        <a href="{{ route('mil-ranks.trashed') }}" class="btn btn-outline-danger mb-3">🗑️ Видалені</a>
+    </div>
 
     {{-- Таблиця звань --}}
     <table class="table table-bordered table-striped mt-4">

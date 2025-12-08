@@ -164,6 +164,35 @@ $(function() {
     setupAutocomplete('age_group_autocomplete', 'age_group_id', ageGroups);
     setupAutocomplete('unit_autocomplete', 'unit_id', units);
 });
+
+$(document).ready(function() {
+    let $ageGroupSelect = $('#age_group_id');
+    $ageGroupSelect.prop('disabled', true); // заблокуємо спочатку
+
+    // Формуємо список вікових груп (label + id + gender)
+    let ageGroupsData = @json($ageGroups->map(fn($a) => [
+        'id' => $a->id,
+        'label' => $a->age_group_number . ' (' . $a->gender . ') - ' . $a->description,
+        'gender' => $a->gender
+    ]));
+
+    // При зміні статі
+    $('input[name="gender"]').on('change', function() {
+        let selectedGender = $(this).val();
+        $ageGroupSelect.empty();
+        $ageGroupSelect.append('<option value="">-- Оберіть вікову групу --</option>');
+
+        // Додаємо лише ті, що підходять за статтю
+        ageGroupsData.forEach(function(group) {
+            if (group.gender === selectedGender) {
+                $ageGroupSelect.append(`<option value="${group.id}">${group.label}</option>`);
+            }
+        });
+
+        $ageGroupSelect.prop('disabled', false); // розблокувати
+    });
+});
+
 </script>
 
 </body>

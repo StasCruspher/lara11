@@ -239,21 +239,18 @@ public function show($id)
     return view('scores.show', compact('participants', 'score', 'exercises', 'results', 'archived', 'allParticipants'));
 }
 
-
-
 public function updateResult(Request $request)
 {
     try {
         $participantId = $request->participant;
         $exerciseId = $request->exercise;
         $scoreId = $request->score;
-        $inputResult = $request->result; // беремо як рядок, не float
+        $inputResult = $request->result;
 
         $participant = Participant::with(['ageGroup', 'category'])->findOrFail($participantId);
         $score = Score::with('scoreExercises')->findOrFail($scoreId);
         $exercise = Exercise::findOrFail($exerciseId);
 
-        // Норматив 50 балів
         $req50 = Requirement::where('exercise_id', $exerciseId)
             ->where('gender', $participant->gender)
             ->where('point', 50)
@@ -268,18 +265,16 @@ public function updateResult(Request $request)
                 ->first();
 
             if ($anyOther && bccomp($req50->result, $anyOther->result, 2) < 0) {
-                $isLowerBetter = true; // менше = краще
+                $isLowerBetter = true;
             }
         }
 
-        // Всі нормативи для цієї вправи
         $requirements = Requirement::where('exercise_id', $exerciseId)
             ->where('gender', $participant->gender)
             ->get();
 
         $isTimeBased = $this->isTimeBasedExercise($requirements);
 
-        // Визначаємо норматив, що відповідає введеному результату
         if ($isLowerBetter) {
             $req = Requirement::where('exercise_id', $exerciseId)
                 ->where('gender', $participant->gender)
@@ -295,14 +290,10 @@ public function updateResult(Request $request)
         }
 
         $assignedPoint = $req ? $req->point : 0;
-
-        // Розрахунок бонусу
-        // Розрахунок бонусу
         $bonus = 0;
 
         if ($req50) {
             if ($isTimeBased) {
-                // Часові нормативи (хвилини.секунди)
                 $inputParts = explode('.', strval($inputResult));
                 $inputMin = intval($inputParts[0]);
                 $inputSec = isset($inputParts[1]) ? intval($inputParts[1]) : 0;
@@ -320,24 +311,18 @@ public function updateResult(Request $request)
                     $bonus = $inputTotalSec - $maxTotalSec;
                 }
             } else {
-                // Десяткові нормативи (точність 2 знаки після коми)
-                // Використовуємо BCMath, щоб уникнути помилок float
                 if ($isLowerBetter) {
-                    $diff = bcsub($req50->result, $inputResult, 2); // норматив - результат
+                    $diff = bcsub($req50->result, $inputResult, 2);
                 } else {
-                    $diff = bcsub($inputResult, $req50->result, 2); // результат - норматив
+                    $diff = bcsub($inputResult, $req50->result, 2);
                 }
 
-                // Конвертуємо у бонусні бали
-                // Множимо на 10, щоб 0.1 = 1 бал
                 $bonus = floor(bcmul($diff, '10', 2));
             }
         }
 
         $assignedPointWithBonus = ($assignedPoint >= 50) ? $assignedPoint + $bonus : $assignedPoint;
 
-
-        // Збереження результату
         $result = Result::firstOrCreate([
             'participant_id' => $participantId,
             'score_id' => $scoreId
@@ -354,31 +339,36 @@ public function updateResult(Request $request)
             ]
         );
 
-        // Підрахунок сумарних балів
         $pointSum = ResultExercise::where('result_id', $result->id)->sum('point');
         $result->point_sum = $pointSum;
 
-        // Перевірка на фізпідготовку
-        $totalExercises = $score->scoreExercises()->count();
-        $completedExercises = ResultExercise::where('result_id', $result->id)->count();
+        $completedExercises = ResultExercise::where('result_id', $result->id)
+            ->whereNotNull('result')
+            ->count();
+
         $physFitnessPoint = null;
 
-        if ($completedExercises == $totalExercises) {
+        $minExercisesRequired = 3;
+
+        if ($completedExercises >= $minExercisesRequired) {
             $threshold = PhysFitnessRequirement::where('age_group_id', $participant->age_group_id)
                 ->where('category_id', $participant->category_id)
                 ->where('gender', $participant->gender)
                 ->first();
 
             if ($threshold) {
-                $allPassed = ResultExercise::where('result_id', $result->id)
-                    ->where('point', '<', $threshold->exercise_threshold)
-                    ->count() == 0;
+                $passedCount = ResultExercise::where('result_id', $result->id)
+                    ->whereNotNull('result')
+                    ->where('point', '>=', $threshold->exercise_threshold)
+                    ->count();
 
-                if ($allPassed) {
+                $minPassedRequired = 3;
+
+                if ($passedCount >= $minPassedRequired) {
                     $grade = PhysFitnessRequirement::where('age_group_id', $participant->age_group_id)
                         ->where('category_id', $participant->category_id)
                         ->where('gender', $participant->gender)
-                        ->where('exercise_count', $totalExercises)
+                        ->where('exercise_count', $completedExercises)
                         ->where('total_points', '<=', $pointSum)
                         ->orderByDesc('total_points')
                         ->first();
@@ -388,6 +378,8 @@ public function updateResult(Request $request)
                     $physFitnessPoint = 0;
                 }
             }
+        } else {
+            $physFitnessPoint = 0;
         }
 
         $result->phys_fitness_point = $physFitnessPoint;

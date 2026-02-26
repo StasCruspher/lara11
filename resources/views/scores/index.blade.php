@@ -42,11 +42,11 @@
     <!-- Діапазон дат -->
     <div class="col-md-3">
         <label class="form-label">Дата від</label>
-        <input type="date" name="date_from" class="form-control" value="{{ request('date_from') }}">
+        <input type="month" name="date_from" class="form-control" value="{{ request('date_from') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label">Дата до</label>
-        <input type="date" name="date_to" class="form-control" value="{{ request('date_to') }}">
+        <input type="month" name="date_to" class="form-control" value="{{ request('date_to') }}">
     </div>
 
     <!-- Кількість вправ -->
@@ -103,7 +103,7 @@
         </div>
     </form>
 
-    <a href="{{ route('scores.select-unit') }}" class="btn btn-primary mb-3">➕ Створити залік</a>
+    <a href="{{ route('scores.create') }}" class="btn btn-primary mb-3">➕ Створити залік</a>
 
     <table class="table table-bordered table-striped">
         <thead class="table-primary">

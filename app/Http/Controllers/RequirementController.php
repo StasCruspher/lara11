@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Exercise;
 use App\Models\Requirement;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class RequirementController extends Controller
 {

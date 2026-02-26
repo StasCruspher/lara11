@@ -39,11 +39,11 @@ class ScoreController extends Controller
         }
 
         if ($request->filled('date_from')) {
-            $query->whereDate('date', '>=', $request->date_from);
+            $query->whereDate('date', '>=', $request->date_from . '-01');
         }
-
         if ($request->filled('date_to')) {
-            $query->whereDate('date', '<=', $request->date_to);
+            $dateTo = date('Y-m-t', strtotime($request->date_to . '-01'));
+            $query->whereDate('date', '<=', $dateTo);
         }
 
         if ($request->filled('exercise_count')) {
@@ -75,105 +75,67 @@ class ScoreController extends Controller
         return view('scores.index', compact('scores', 'exerciseCounts'));
     }
 
-    public function selectUnit()
+
+    public function create()
     {
-        $units = Unit::all();
-        return view('scores.select-unit', compact('units'));
-    }
-
-
-    public function create(Request $request)
-    {
-        $unitId = $request->query('unit_id');
-
         $units = Unit::all();
         $exercises = Exercise::all();
-        
-        $participants = Participant::where('unit_id', $unitId)->get();
 
-        return view('scores.create', compact('units', 'exercises', 'participants', 'unitId'));
+        return view('scores.create', compact('units', 'exercises'));
     }
 
+public function store(Request $request)
+{
+    $request->validate([
+        'unit_name' => 'required|string|exists:unit,unit_name',
+        'exercises' => 'required|array|min:3|max:5',
+        'date' => 'required|date',
+    ], [
+        'unit_name.required' => 'Вкажіть підрозділ.',
+        'unit_name.exists' => 'Вказаний підрозділ не існує.',
+        'exercises.required' => 'Вкажіть вправи.',
+        'exercises.min' => 'Мінімум 3 вправи.',
+        'exercises.max' => 'Максимум 5 вправ.',
+        'date.required' => 'Вкажіть дату.',
+        'date.date' => 'Невірний формат дати.',
+    ]);
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'unit_id' => 'required|exists:unit,id',
-            'participants' => 'required|array|min:1',
-            'participants.*' => 'exists:participant,id',
-            'exercises' => 'required|array|min:3|max:5',
-            'exercises.*' => 'exists:exercise,id'
-        ], [
-            'unit_id.required' => 'Підрозділ не вибрано.',
-            'participants.required' => 'Виберіть учнів.',
-            'participants.*.exists' => 'Один із вибраних учнів не існує.',
-            'exercises.required' => 'Виберіть вправи.',
-            'exercises.min' => 'Мінімум 3 вправи.',
-            'exercises.max' => 'Максимум 5 вправ.'
+    // Знаходимо підрозділ по назві
+    $unit = Unit::where('unit_name', $request->unit_name)->firstOrFail();
+
+    $score = Score::create([
+        'unit_id' => $unit->id,
+        'date' => \Carbon\Carbon::createFromFormat('d.m.Y', $request->date)->format('Y-m-d'),
+        'exercise_count' => count($request->exercises),
+    ]);
+
+    // Додаємо вибрані вправи
+    foreach ($request->exercises as $exerciseId) {
+        ScoreExercise::create([
+            'score_id' => $score->id,
+            'exercise_id' => $exerciseId,
+        ]);
+    }
+
+    // Створюємо результати для всіх учасників підрозділу
+    $participants = Participant::where('unit_id', $unit->id)->get();
+
+    foreach ($participants as $participant) {
+        $result = Result::create([
+            'score_id' => $score->id,
+            'participant_id' => $participant->id,
         ]);
 
-        // 1️⃣ Створюємо сам залік
-        $score = Score::create([
-            'unit_id' => $request->unit_id,
-            'date' => $request->date,
-            'exercise_count' => count($request->exercises),
-        ]);
-
-        // 2️⃣ Додаємо вправи до заліку
         foreach ($request->exercises as $exerciseId) {
-            ScoreExercise::create([
-                'score_id' => $score->id,
+            ResultExercise::create([
+                'result_id' => $result->id,
                 'exercise_id' => $exerciseId,
             ]);
         }
-
-        // 3️⃣ Створюємо результати ТІЛЬКИ для вибраних учнів
-        $participants = Participant::whereIn('id', $request->participants)->get();
-
-        foreach ($participants as $participant) {
-            $result = Result::create([
-                'score_id' => $score->id,
-                'participant_id' => $participant->id,
-            ]);
-
-            // Додаємо вправи для кожного результату
-            foreach ($request->exercises as $exerciseId) {
-                ResultExercise::create([
-                    'result_id' => $result->id,
-                    'exercise_id' => $exerciseId,
-                ]);
-            }
-        }
-
-        return redirect()->route('scores.index')->with('success', 'Залік створено успішно!');
     }
 
-    public function storeParticipant(Request $request, Score $score)
-    {
-        $request->validate([
-            'participant_id' => 'required|exists:participant,id',
-        ], [
-            'participant_id.required' => 'Виберіть учня.',
-        ]);
-
-        if(Result::where('score_id', $score->id)->where('participant_id', $request->participant_id)->exists()){
-            return redirect()->back()->with('error', 'Учень вже доданий до заліку!');
-        }
-
-        $result = Result::create([
-            'score_id' => $score->id,
-            'participant_id' => $request->participant_id,
-        ]);
-
-        foreach ($score->exercises as $exercise) {
-            ResultExercise::create([
-                'result_id' => $result->id,
-                'exercise_id' => $exercise->id,
-            ]);
-        }
-
-        return redirect()->back()->with('success', 'Учня додано до заліку!');
-    }
+    return redirect()->route('scores.index')->with('success', 'Залік створено успішно!');
+}
 
 public function show($id)
 {
@@ -199,45 +161,11 @@ public function show($id)
         'ageGroup' => fn($q) => $q->withTrashed(),
         'category' => fn($q) => $q->withTrashed(),
     ])->get();
-    
-    $allParticipants = Participant::with([
-        'milRank' => function ($q) {
-            $q->withTrashed();
-        }
-    ])->get();
-    
-    $archived = false;
 
-    if ($score->trashed() || ($score->unit && $score->unit->trashed())) {
-        $archived = true;
-    }
-
-    if ($exercises->contains(fn($e) => $e->trashed())) {
-        $archived = true;
-    }
-
-    foreach ($results as $result) {
-        $p = $result->participant;
-        if (!$p) continue;
-
-        if ($p->trashed()
-            || ($p->milRank && $p->milRank->trashed())
-            || ($p->ageGroup && $p->ageGroup->trashed())
-            || ($p->category && $p->category->trashed())) {
-            $archived = true;
-            break;
-        }
-
-        foreach ($result->exercises as $re) {
-            if ($re->exercise && $re->exercise->trashed()) {
-                $archived = true;
-                break 2;
-            }
-        }
-    }
-
-    return view('scores.show', compact('participants', 'score', 'exercises', 'results', 'archived', 'allParticipants'));
+    return view('scores.show', compact('participants', 'score', 'exercises', 'results'));
 }
+
+
 
 public function updateResult(Request $request)
 {
@@ -245,12 +173,13 @@ public function updateResult(Request $request)
         $participantId = $request->participant;
         $exerciseId = $request->exercise;
         $scoreId = $request->score;
-        $inputResult = $request->result;
+        $inputResult = $request->result; // беремо як рядок, не float
 
         $participant = Participant::with(['ageGroup', 'category'])->findOrFail($participantId);
         $score = Score::with('scoreExercises')->findOrFail($scoreId);
         $exercise = Exercise::findOrFail($exerciseId);
 
+        // Норматив 50 балів
         $req50 = Requirement::where('exercise_id', $exerciseId)
             ->where('gender', $participant->gender)
             ->where('point', 50)
@@ -265,16 +194,18 @@ public function updateResult(Request $request)
                 ->first();
 
             if ($anyOther && bccomp($req50->result, $anyOther->result, 2) < 0) {
-                $isLowerBetter = true;
+                $isLowerBetter = true; // менше = краще
             }
         }
 
+        // Всі нормативи для цієї вправи
         $requirements = Requirement::where('exercise_id', $exerciseId)
             ->where('gender', $participant->gender)
             ->get();
 
         $isTimeBased = $this->isTimeBasedExercise($requirements);
 
+        // Визначаємо норматив, що відповідає введеному результату
         if ($isLowerBetter) {
             $req = Requirement::where('exercise_id', $exerciseId)
                 ->where('gender', $participant->gender)
@@ -290,10 +221,14 @@ public function updateResult(Request $request)
         }
 
         $assignedPoint = $req ? $req->point : 0;
+
+        // Розрахунок бонусу
+        // Розрахунок бонусу
         $bonus = 0;
 
         if ($req50) {
             if ($isTimeBased) {
+                // Часові нормативи (хвилини.секунди)
                 $inputParts = explode('.', strval($inputResult));
                 $inputMin = intval($inputParts[0]);
                 $inputSec = isset($inputParts[1]) ? intval($inputParts[1]) : 0;
@@ -311,18 +246,24 @@ public function updateResult(Request $request)
                     $bonus = $inputTotalSec - $maxTotalSec;
                 }
             } else {
+                // Десяткові нормативи (точність 2 знаки після коми)
+                // Використовуємо BCMath, щоб уникнути помилок float
                 if ($isLowerBetter) {
-                    $diff = bcsub($req50->result, $inputResult, 2);
+                    $diff = bcsub($req50->result, $inputResult, 2); // норматив - результат
                 } else {
-                    $diff = bcsub($inputResult, $req50->result, 2);
+                    $diff = bcsub($inputResult, $req50->result, 2); // результат - норматив
                 }
 
+                // Конвертуємо у бонусні бали
+                // Множимо на 10, щоб 0.1 = 1 бал
                 $bonus = floor(bcmul($diff, '10', 2));
             }
         }
 
         $assignedPointWithBonus = ($assignedPoint >= 50) ? $assignedPoint + $bonus : $assignedPoint;
 
+
+        // Збереження результату
         $result = Result::firstOrCreate([
             'participant_id' => $participantId,
             'score_id' => $scoreId
@@ -339,36 +280,31 @@ public function updateResult(Request $request)
             ]
         );
 
+        // Підрахунок сумарних балів
         $pointSum = ResultExercise::where('result_id', $result->id)->sum('point');
         $result->point_sum = $pointSum;
 
-        $completedExercises = ResultExercise::where('result_id', $result->id)
-            ->whereNotNull('result')
-            ->count();
-
+        // Перевірка на фізпідготовку
+        $totalExercises = $score->scoreExercises()->count();
+        $completedExercises = ResultExercise::where('result_id', $result->id)->count();
         $physFitnessPoint = null;
 
-        $minExercisesRequired = 3;
-
-        if ($completedExercises >= $minExercisesRequired) {
+        if ($completedExercises == $totalExercises) {
             $threshold = PhysFitnessRequirement::where('age_group_id', $participant->age_group_id)
                 ->where('category_id', $participant->category_id)
                 ->where('gender', $participant->gender)
                 ->first();
 
             if ($threshold) {
-                $passedCount = ResultExercise::where('result_id', $result->id)
-                    ->whereNotNull('result')
-                    ->where('point', '>=', $threshold->exercise_threshold)
-                    ->count();
+                $allPassed = ResultExercise::where('result_id', $result->id)
+                    ->where('point', '<', $threshold->exercise_threshold)
+                    ->count() == 0;
 
-                $minPassedRequired = 3;
-
-                if ($passedCount >= $minPassedRequired) {
+                if ($allPassed) {
                     $grade = PhysFitnessRequirement::where('age_group_id', $participant->age_group_id)
                         ->where('category_id', $participant->category_id)
                         ->where('gender', $participant->gender)
-                        ->where('exercise_count', $completedExercises)
+                        ->where('exercise_count', $totalExercises)
                         ->where('total_points', '<=', $pointSum)
                         ->orderByDesc('total_points')
                         ->first();
@@ -378,8 +314,6 @@ public function updateResult(Request $request)
                     $physFitnessPoint = 0;
                 }
             }
-        } else {
-            $physFitnessPoint = 0;
         }
 
         $result->phys_fitness_point = $physFitnessPoint;

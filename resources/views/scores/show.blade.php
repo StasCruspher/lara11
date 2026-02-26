@@ -72,37 +72,7 @@
                 <p>{{ \Carbon\Carbon::parse($score->date)->format('d.m.Y') }}
 </p>
             </div>
-                <div class="table-responsive">
-                    @if(!$archived)
-                    <div class="mb-3 p-2 border rounded bg-light">
-                        <h5>➕ Додати учня до заліку</h5>
-                        @php
-                            $existing = $results->pluck('participant_id');
-                            $availableParticipants = $allParticipants->whereNotIn('id', $existing);
-                        @endphp
-
-                        @if($availableParticipants->isEmpty())
-                            <div class="alert alert-info">Усі учні цього підрозділу вже додані до заліку.</div>
-                        @else
-                        <form method="POST" action="{{ route('scores.store-participant', $score->id) }}" class="row g-2 align-items-end">
-                            @csrf
-                            <div class="col-md-6">
-                                <label class="form-label">Виберіть учня</label>
-                                <input type="text" id="participant_autocomplete" class="form-control" placeholder="Почніть вводити ім'я учня..." required>
-                                <input type="hidden" name="participant_id" id="participant_id">
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-success">Додати</button>
-                            </div>
-                        </form>
-                        @endif
-                    </div>
-                    @endif
-                </div>
-
-                @if($archived)
-                    <div class="alert alert-warning">⚠️ Цей залік тільки для перегляду</div>
-                @endif
+            <div class="table-responsive">
                 <table class="table-sheet table table-bordered">
                     <thead>
                         <tr>
@@ -187,10 +157,8 @@
                                 </td>
                             @else
                                 <td 
-                                @if($genderType[$exercises[$i]->id] === $r->participant->gender || $genderType[$exercises[$i]->id] === 'оба')
-                                    @if(!$archived)
-                                        contenteditable="true"
-                                    @endif
+                                @if($genderType[$exercises[$i]->id] === $r->participant->gender || $genderType[$exercises[$i]->id] === 'оба') 
+                                    contenteditable="true"
                                 @else
                                     class="forbidden-gender"
                                 @endif
@@ -200,12 +168,7 @@
                                 class="editable">
                                 {{ $r->exercises[$i]->result}}
                                 </td>
-                                <td
-                                @if($genderType[$exercises[$i]->id] === $r->participant->gender || $genderType[$exercises[$i]->id] === 'оба')
-                                    class="point-display"
-                                @else
-                                    class="forbidden-gender"
-                                @endif
+                                <td class="point-display"
                                 data-participant="{{ $r->participant->id }}"
                                 data-exercise="{{ $r->exercises[$i]->exercise_id }}">
                                 {{ $r->exercises[$i]->point }}
@@ -222,10 +185,7 @@
             </div>
         </main>
     </body>
-                <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-                <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-                <link href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" rel="stylesheet">
-
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
                 $('.editable').on('blur', function () {
                     let participant = $(this).data('participant');
@@ -265,33 +225,5 @@
                     // Оновлюємо початкове значення після успішного blur
                     $(this).data('original', value);
                 });
-
-
-$(function() {
-    let participants = @json($availableParticipants->mapWithKeys(function($p) {
-        return [$p->id => $p->milRank->name . ' ' . $p->fullname];
-    }));
-
-    let data = Object.entries(participants).map(([id, label]) => ({ label, id }));
-
-    $('#participant_autocomplete').autocomplete({
-        source: data,
-        select: function(event, ui) {
-            $('#participant_id').val(ui.item.id);
-            $(this).val(ui.item.label);
-            return false;
-        },
-        focus: function(event, ui) {
-            $(this).val(ui.item.label);
-            return false;
-        },
-        change: function(event, ui) {
-            if (!ui.item) {
-                $('#participant_id').val('');
-                $(this).val('');
-            }
-        }
-    });
-});
     </script>
 </html>

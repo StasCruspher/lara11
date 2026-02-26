@@ -58,31 +58,18 @@
         </button>
     </form>
 
-    <a href="{{ route('units.trashed') }}" class="btn btn-outline-danger mb-3">🗑️ Видалені</a>
-
     {{-- Таблиця підрозділів --}}
     <table class="table table-bordered table-striped mt-4">
         <thead class="table-primary">
             <tr>
                 <th>Назва підрозділу</th>
                 <th style="width: 120px;"></th>
-                <th style="width: 120px;"></th>
-                <th></th>
             </tr>
         </thead>
         <tbody>
             @forelse ($units as $unit)
                 <tr>
                     <td>{{ $unit->unit_name }}</td>
-                    <td>
-                        <a href="{{ route('units.edit', $unit) }}" class="btn btn-warning btn-sm">✏️ Редагувати</a>
-                    </td>
-                    <td>
-                        <form action="{{ route('participants.index') }}" method="GET" style="display:inline;">
-                            <input type="hidden" name="unit_id" value="{{ $unit->id }}">
-                            <button type="submit" class="btn btn-sm btn-primary">Перегляд</button>
-                        </form>
-                    </td>
                     <td>
                         <form action="{{ route('units.destroy', $unit) }}" method="POST" onsubmit="return confirm('Видалити цей підрозділ?');">
                             @csrf

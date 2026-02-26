@@ -46,12 +46,6 @@
         </button>
     </form>
 
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-
-    <a href="{{ route('categories.trashed') }}" class="btn btn-outline-danger mb-3">🗑️ Видалені</a>
-
     {{-- Таблиця категорій --}}
     <table class="table table-bordered table-striped mt-4">
         <thead class="table-primary">

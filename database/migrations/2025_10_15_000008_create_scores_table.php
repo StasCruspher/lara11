@@ -1,10 +1,3 @@
-//
-//  2025_15_10_000007_create_scores_table.php
-//  
-//
-//  Created by St Life on 15.10.2025.
-//
-
 <?php
 
 use Illuminate\Database\Migrations\Migration;
